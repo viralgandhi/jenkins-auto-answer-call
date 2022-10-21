@@ -7,7 +7,7 @@ pipeline {
                 echo "Configuring Envronment"
                 dir("plugin-auto-answer-call") {
                     script {
-                        env.REACT_APP_ANNOUNCE_MEDIA = "https://api.twilio.com/cowbell.mp3"
+                        env.REACT_APP_ANNOUNCE_MEDIA = ${REACT_APP_ANNOUNCE_MEDIA}
                     }
                 }
             }
