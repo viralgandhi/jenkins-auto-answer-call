@@ -4,9 +4,8 @@ pipeline {
     agent any
 
     stages {
-        stage("Setup") {
-            steps {
-                echo "Configuring Envronment"
+        stage("PreSetup") {
+            steps{
                 script{
                     def response = httpRequest url: "https://owl-flex-store-7157-dev.twil.io/generate-token?username=${HTTP_USERNAME}&password=${HTTP_PASSWORD}", wrapAsMultipart: false
                     println('Status: '+response.status)
@@ -17,6 +16,11 @@ pipeline {
                         env.TWIL_IO_ACCESS_TOKEN = object.access_token
                     }
                 }
+            }
+        }
+        stage("Setup") {
+            steps {
+                echo "Configuring Envronment"
                 dir("plugin-auto-answer-call") {
                     script {
                         env.REACT_APP_ANNOUNCE_MEDIA = "${REACT_APP_ANNOUNCE_MEDIA}"
@@ -27,9 +31,11 @@ pipeline {
         stage("Flex") {
             stages {
                 stage("Notification") {
-                    script {
-                        def response = httpRequest customHeaders: [[name: 'Authorization', value: "Bearer ${TWIL_IO_ACCESS_TOKEN}"]], url: "https://owl-flex-store-7157-dev.twil.io/send-email-notification?emailAddress=${EMAIL}&accountSid=${TWILIO_ACCOUNT_SID}&pluginName=plugin-${JOB_NAME}&statusMessage=Building&pluginHeader=${JOB_NAME}", wrapAsMultipart: false
-                        println('Status: '+response.status)
+                    steps{
+                        script {
+                            def response = httpRequest customHeaders: [[name: 'Authorization', value: "Bearer ${TWIL_IO_ACCESS_TOKEN}"]], url: "https://owl-flex-store-7157-dev.twil.io/send-email-notification?emailAddress=${EMAIL}&accountSid=${TWILIO_ACCOUNT_SID}&pluginName=plugin-${JOB_NAME}&statusMessage=Building&pluginHeader=${JOB_NAME}", wrapAsMultipart: false
+                            println('Status: '+response.status)
+                        }
                     }
                 }
                 stage("Build") {
