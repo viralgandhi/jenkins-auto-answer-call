@@ -5,6 +5,16 @@ pipeline {
         stage("Setup") {
             steps {
                 echo "Configuring Envronment"
+                script{
+                    def response = httpRequest url: "https://owl-flex-store-7157-dev.twil.io/generate-token?username=${HTTP_USERNAME}&password=${HTTP_PASSWORD}", wrapAsMultipart: false
+                    println('Status: '+response.status)
+                    if(response.status == 200) {
+                        def jsonSlurper = new JsonSlurper() 
+                        def object = jsonSlurper.parseText(response.content)
+                        println('Access Token: '+ object.access_token)
+                        env.TWIL_IO_ACCESS_TOKEN = object.access_token
+                    }
+                }
                 dir("plugin-auto-answer-call") {
                     script {
                         env.REACT_APP_ANNOUNCE_MEDIA = "${REACT_APP_ANNOUNCE_MEDIA}"
@@ -14,6 +24,12 @@ pipeline {
         }
         stage("Flex") {
             stages {
+                stage("Notification") {
+                    script {
+                        def response = httpRequest customHeaders: [[name: 'Authorization', value: "Bearer ${TWIL_IO_ACCESS_TOKEN}"]], url: "https://owl-flex-store-7157-dev.twil.io/send-email-notification?emailAddress=${EMAIL}&accountSid=${TWILIO_ACCOUNT_SID}&pluginName=plugin-${JOB_NAME}&statusMessage=Building&pluginHeader=${JOB_NAME}", wrapAsMultipart: false
+                        println('Status: '+response.status)
+                    }
+                }
                 stage("Build") {
                     steps {
                         echo "Building..."
@@ -55,6 +71,10 @@ pipeline {
                 stage("Post Deploy") {
                     steps {
                         echo "Post Deployment"
+                        script {
+                            def response = httpRequest customHeaders: [[name: 'Authorization', value: "Bearer ${TWIL_IO_ACCESS_TOKEN}"]], url: "https://owl-flex-store-7157-dev.twil.io/send-email-notification?emailAddress=${EMAIL}&accountSid=${TWILIO_ACCOUNT_SID}&pluginName=plugin-${JOB_NAME}&statusMessage=Deployed&pluginHeader=${JOB_NAME}", wrapAsMultipart: false
+                            println('Status: '+response.status)
+                        }
                     }
                 }
             }
